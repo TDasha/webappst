@@ -349,4 +349,76 @@ def main():
                 plt.figure(figsize=(6, 6))
                 plt.scatter(X_reduced[:, 0], X_reduced[:, 1],
                             edgecolor='none', alpha=0.7, s=40, c=dataset['cluster'],
-                            cmap=plt
+                            cmap=plt.cm.get_cmap('nipy_spectral', 10))
+                plt.colorbar()
+                plt.title('Feautures PCA projection')
+                st.pyplot(plt.show())
+
+            if st.checkbox("TSNE"):
+                tsne = TSNE(random_state=17)
+                tsne_representation = tsne.fit_transform(X)
+                plt.figure(figsize=(6, 6))
+                plt.scatter(tsne_representation[:, 0], tsne_representation[:, 1],
+                            edgecolor='none', alpha=0.7, s=40, c=dataset['cluster'],
+                            cmap=plt.cm.get_cmap('nipy_spectral', 10))
+                plt.colorbar()
+                plt.title('Feautures T-sne projection ')
+                st.pyplot(plt.show())
+            if st.button("Cохранить"):
+                save_exel(dataset, "Кластеризация k-means")
+
+        elif problem_type == "Классификация":
+            classification_type = st.radio("Выберите алгоритм решения",
+                                ("Все"," KNeighborsClassifier","SVC_model" ))
+            st.write("Выберите столбец у для задачи классификации")
+            selected_y = st.multiselect("", all_clummn_names)
+            if st.button("Выбрать"):
+                st.success("Столбец {} выбран успешно".format(selected_y))
+
+            # ".iloc" принимает row_indexer, column_indexer
+            y = np.array(data[selected_y])
+            X = np.array(data.drop(selected_y, 1))
+
+            # test_size показывает, какой объем данных нужно выделить для тестового набора
+            # Random_state — просто сид для случайной генерации
+            # Этот параметр можно использовать для воссоздания определённого результата:
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=27)
+
+            if classification_type == "Все":
+                SVC_model = svm.SVC()
+                st.write("В KNN-модели нужно указать параметр n_neighbors. Это число точек, на которое будет смотреть классификатор, чтобы определить, к какому классу принадлежит новая точка")                 #
+                nbr = st.slider("Число точек ",3,data.shape[0])
+                KNN_model = KNeighborsClassifier(n_neighbors=nbr)
+                SVC_model.fit(X_train, y_train)
+                KNN_model.fit(X_train, y_train)
+
+                SVC_prediction = SVC_model.predict(X_test)
+                KNN_prediction = KNN_model.predict(X_test)
+
+                # Оценка точности — простейший вариант оценки работы классификатора
+                st.write("Оценка точности классификатора SVC_model")
+                st.write(accuracy_score(SVC_prediction, y_test))
+                st.write("Матрица неточности и отчёт о классификации дадут больше информации о производительности")
+                st.write(confusion_matrix(SVC_prediction, y_test))
+
+                st.write(classification_report(SVC_prediction, y_test))
+                st.write(SVC_prediction.tolist())
+
+                st.write("Оценка точности классификатора KNeighborsClassifier")
+                st.write(accuracy_score(KNN_prediction, y_test))
+                st.write("Матрица неточности и отчёт о классификации дадут больше информации о производительности")
+                # Но матрица неточности и отчёт о классификации дадут больше информации о производительности
+                st.write(confusion_matrix(KNN_prediction, y_test))
+                st.write(classification_report(KNN_prediction, y_test))
+                st.write(KNN_prediction.tolist())
+
+
+
+        else:
+            st.write(data.shape)
+    if st.button("Завершить работу"):
+        st.balloons()
+if __name__=='__main__':
+    main()
+
+
