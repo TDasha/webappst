@@ -31,8 +31,44 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score
 from sklearn.neighbors import KNeighborsClassifier
 from openpyxl.workbook import Workbook
+import base64
 
 def main():
+    def get_table_download_link(df,frase):
+
+        csv = df.to_csv(index=False)
+        b64 = base64.b64encode(
+            csv.encode()).decode()  # some strings <-> bytes conversions necessary here
+
+        href = f'<a href="data:file/csv;base64,{b64}">{frase}</a> (right-click and save as &lt;some_name&gt;.csv)'
+
+        st.markdown(href, unsafe_allow_html=True)
+
+    def save_train_test_data(predictions):
+        cols = []
+        for i in all_clummn_names:
+            cols.append(str(i))
+        cols.remove(selected_y[-1])
+        cols.append(str(selected_y[-1]) + " ( Selected y )")
+
+        df1 = pd.DataFrame(np.concatenate((trainX, trainY), axis=1), columns=cols)
+        st.text("Обучающая выборка")
+        st.write(df1)
+        cols.pop()
+        cols.append('Predictions')
+        cols.append(str(selected_y[-1]) + " ( Real y value )")
+
+        predictions = np.reshape(predictions, (predictions.shape[0], 1))
+
+        df2 = pd.DataFrame(np.concatenate((np.concatenate((testX, predictions), axis=1), testY), axis=1), columns=cols)
+        st.text("Тестовая выборка")
+        st.write(df2)
+        get_table_download_link(df1,"Сохранить обучающую выборку CSV File")
+        get_table_download_link(df2,"Сохранить тестовую выборку CSV File")
+
+
+
+
     st.title("Анализ данных & Машинное обучение")
     st.subheader("Выберите файл с данными для анализа")
 
@@ -44,6 +80,7 @@ def main():
     st.info("Вы выбрали {}".format(fname))
 
     data = pd.read_csv(fname)
+
 
     def save_exel(df,SName):
         writer = pd.ExcelWriter('Results.xlsx')
@@ -197,136 +234,98 @@ def main():
             reg_type = st.radio("Выберите алгоритм решения", ("Все","Линейная регрессия", "Ridge", "Lasso", "Случайный лес"))
             test_size_slider = st.slider("Выберите размер тестовой выборки %", 1, 100)
             if st.checkbox("Выполнить"):
-                st.success("Столбец {} выбран успешно".format(selected_y))
 
-                train, test = train_test_split(data, test_size=test_size_slider/100)
-                st.write(test_size_slider/100)
-                trainX = np.array(train.drop(selected_y, 1))
-                trainY = np.array(train[selected_y])
-                testX = np.array(test.drop(selected_y, 1))
-                testY = np.array(test[selected_y])
+                if (selected_y):
+                    st.success("Столбец {} выбран успешно".format(selected_y))
 
-                st.write(selected_y)
+                    train, test = train_test_split(data, test_size=test_size_slider/100)
+                    st.write(test_size_slider/100)
+                    trainX = np.array(train.drop(selected_y, 1))
+                    trainY = np.array(train[selected_y])
+                    testX = np.array(test.drop(selected_y, 1))
+                    testY = np.array(test[selected_y])
 
-                st.write(trainY.reshape(trainY.shape[0]))
+                    st.write(selected_y)
 
-
-
-
-                if reg_type == "Все":
-                    reg_type = "Линейная регрессия"
-                    n_predictions = model_linear_Regression(preprocessing.normalize(trainX), trainY,preprocessing.normalize(testX),testY)
-                    predictions = model_linear_Regression(trainX, trainY, testX, testY)
-                    regression_plot_show(trainX, testY, predictions, n_predictions, reg_type, selected_y)
-                    regression_errors_values(testY, predictions, n_predictions)
-
-
-                    reg_type = "Ridge"
-                    n_predictions = model_ridge_Regression(preprocessing.normalize(trainX), trainY,preprocessing.normalize(testX),testY)
-                    predictions = model_ridge_Regression(trainX, trainY, testX, testY)
-                    regression_plot_show(trainX, testY, predictions, n_predictions, reg_type, selected_y)
-                    regression_errors_values(testY, predictions, n_predictions)
-
-                    reg_type = "Случайный лес"
-                    n_predictions = model_random_forest(preprocessing.normalize(trainX), trainY,preprocessing.normalize(testX),testY)
-                    predictions = model_random_forest(trainX, trainY, testX, testY)
-                    regression_plot_show(trainX, testY, predictions, n_predictions, reg_type, selected_y)
-                    regression_errors_values(testY, predictions, n_predictions)
-
-
-                    reg_type = "Lasso"
-                    n_predictions = model_lasso(preprocessing.normalize(trainX), trainY,preprocessing.normalize(testX),testY)
-                    predictions = model_lasso(trainX, trainY, testX, testY)
-
-                    regression_plot_show(trainX, testY, predictions, n_predictions, reg_type, selected_y)
-                    regression_errors_values(testY, predictions, n_predictions)
-
-                    reg_type=''
-
-
-                    if st.checkbox("Cохранить результаты регрессии"):
-                        cols = []
-                        for i in all_clummn_names:
-                            cols.append(str(i))
-                        cols.remove(selected_y[-1])
-                        cols.append(str(selected_y[-1]) + " ( Selected y )")
-
-                        df1 = pd.DataFrame(np.concatenate((trainX,trainY),axis=1),columns=cols)
-                        st.write(df1)
-                        cols.pop()
-                        cols.append('Predictions')
-                        cols.append(str(selected_y[-1])+" ( Real y value )")
-
-                        st.write(selected_y[-1])
-
-                        st.write(predictions)
-
-                        #res = np.concatenate((testX, predictions), axis=1)
-                        predictions= np.reshape(predictions,(predictions.shape[-1],1))
-                        st.write(predictions.shape)
-                        st.write(predictions)
-                        df2 = pd.DataFrame(np.concatenate((np.concatenate((testX,predictions),axis=1),testY),axis=1),columns=cols)
-                        st.write(df2)
-
-                        writer = pd.ExcelWriter ('Линейная регрессия.xlsx')
-                        df1.to_excel(writer, 'Обучающая выборка')
-                        df2.to_excel(writer, 'Тестовая ваборка')
-                        writer.save()
+                    st.write(trainY.reshape(trainY.shape[0]))
 
 
 
-                if reg_type == "Линейная регрессия":
-                    n_predictions = model_linear_Regression(preprocessing.normalize(trainX), trainY, preprocessing.normalize(testX), testY)
-                    predictions = model_linear_Regression(trainX, trainY, testX, testY)
-                    regression_plot_show(trainX, testY, predictions, n_predictions, reg_type, selected_y)
-                    regression_errors_values(testY, predictions, n_predictions)
+
+                    if reg_type == "Все":
+                        reg_type = "Линейная регрессия"
+                        n_predictions = model_linear_Regression(preprocessing.normalize(trainX), trainY,preprocessing.normalize(testX),testY)
+                        predictions = model_linear_Regression(trainX, trainY, testX, testY)
+                        regression_plot_show(trainX, testY, predictions, n_predictions, reg_type, selected_y)
+                        regression_errors_values(testY, predictions, n_predictions)
 
 
-                    if st.checkbox("Cохранить результаты регрессии"):
-                        cols = []
-                        for i in all_clummn_names:
-                            cols.append(str(i))
-                        cols.remove(selected_y[-1])
-                        cols.append(str(selected_y[-1]) + " ( Selected y )")
+                        reg_type = "Ridge"
+                        n_predictions = model_ridge_Regression(preprocessing.normalize(trainX), trainY,preprocessing.normalize(testX),testY)
+                        predictions = model_ridge_Regression(trainX, trainY, testX, testY)
+                        regression_plot_show(trainX, testY, predictions, n_predictions, reg_type, selected_y)
+                        regression_errors_values(testY, predictions, n_predictions)
 
-                        df1 = pd.DataFrame(np.concatenate((trainX,trainY),axis=1),columns=cols)
-                        st.write(df1)
-                        cols.pop()
-                        cols.append('Predictions')
-                        cols.append(str(selected_y[-1])+" ( Real y value )")
-
-
-                        predictions= np.reshape(predictions,(predictions.shape[0],1))
+                        reg_type = "Случайный лес"
+                        n_predictions = model_random_forest(preprocessing.normalize(trainX), trainY,preprocessing.normalize(testX),testY)
+                        predictions = model_random_forest(trainX, trainY, testX, testY)
+                        regression_plot_show(trainX, testY, predictions, n_predictions, reg_type, selected_y)
+                        regression_errors_values(testY, predictions, n_predictions)
 
 
-                        df2 = pd.DataFrame(np.concatenate((np.concatenate((testX,predictions),axis=1),testY),axis=1),columns=cols)
-                        st.write(df2)
+                        reg_type = "Lasso"
+                        n_predictions = model_lasso(preprocessing.normalize(trainX), trainY,preprocessing.normalize(testX),testY)
+                        predictions = model_lasso(trainX, trainY, testX, testY)
 
-                        writer = pd.ExcelWriter ('Линейная регрессия.xlsx')
-                        df1.to_excel(writer, 'Обучающая выборка')
-                        df2.to_excel(writer, 'Тестовая ваборка')
-                        writer.save()
+                        regression_plot_show(trainX, testY, predictions, n_predictions, reg_type, selected_y)
+                        regression_errors_values(testY, predictions, n_predictions)
+
+                        reg_type=''
+
+                        if st.checkbox("Cохранить результаты регрессии"):
+                            save_train_test_data(predictions)
 
 
-                if reg_type == "Ridge":
-                    n_predictions = model_ridge_Regression(preprocessing.normalize(trainX), trainY,preprocessing.normalize(testX), testY)
-                    predictions = model_ridge_Regression(trainX, trainY, testX, testY)
-                    regression_plot_show(trainX, testY, predictions, n_predictions, reg_type, selected_y)
-                    regression_errors_values(testY, predictions, n_predictions)
 
-                if reg_type == "Lasso":
+                    if reg_type == "Линейная регрессия":
+                        n_predictions = model_linear_Regression(preprocessing.normalize(trainX), trainY, preprocessing.normalize(testX), testY)
+                        predictions = model_linear_Regression(trainX, trainY, testX, testY)
+                        regression_plot_show(trainX, testY, predictions, n_predictions, reg_type, selected_y)
+                        regression_errors_values(testY, predictions, n_predictions)
 
-                    n_predictions = model_lasso(preprocessing.normalize(trainX), trainY,preprocessing.normalize(testX),testY)
-                    predictions = model_lasso(trainX, trainY, testX, testY)
-                    regression_plot_show(trainX, testY, predictions, n_predictions, reg_type, selected_y)
-                    regression_errors_values(testY, predictions, n_predictions)
 
-                if reg_type == "Случайный лес":
-                    n_predictions = model_random_forest(preprocessing.normalize(trainX), trainY, preprocessing.normalize(testX), testY)
-                    predictions = model_random_forest(trainX, trainY, testX, testY)
-                    regression_plot_show(trainX, testY, predictions, n_predictions, reg_type, selected_y)
-                    regression_errors_values(testY, predictions, n_predictions)
+                        if st.checkbox("Cохранить результаты регрессии"):
+                            save_train_test_data(predictions)
 
+
+                    if reg_type == "Ridge":
+                        n_predictions = model_ridge_Regression(preprocessing.normalize(trainX), trainY,preprocessing.normalize(testX), testY)
+                        predictions = model_ridge_Regression(trainX, trainY, testX, testY)
+                        regression_plot_show(trainX, testY, predictions, n_predictions, reg_type, selected_y)
+                        regression_errors_values(testY, predictions, n_predictions)
+
+                        if st.checkbox("Cохранить результаты регрессии"):
+                            save_train_test_data(predictions)
+
+                    if reg_type == "Lasso":
+
+                        n_predictions = model_lasso(preprocessing.normalize(trainX), trainY,preprocessing.normalize(testX),testY)
+                        predictions = model_lasso(trainX, trainY, testX, testY)
+                        regression_plot_show(trainX, testY, predictions, n_predictions, reg_type, selected_y)
+                        regression_errors_values(testY, predictions, n_predictions)
+
+                        if st.checkbox("Cохранить результаты регрессии"):
+                            save_train_test_data(predictions)
+
+                    if reg_type == "Случайный лес":
+                        n_predictions = model_random_forest(preprocessing.normalize(trainX), trainY, preprocessing.normalize(testX), testY)
+                        predictions = model_random_forest(trainX, trainY, testX, testY)
+                        regression_plot_show(trainX, testY, predictions, n_predictions, reg_type, selected_y)
+                        regression_errors_values(testY, predictions, n_predictions)
+                        if st.checkbox("Cохранить результаты регрессии"):
+                            save_train_test_data(predictions)
+                else:
+                    st.warning("Выберите стоббец у")
 
 
 
@@ -414,8 +413,11 @@ def main():
 
 
 
-        else:
-            st.write(data.shape)
+
+
+
+
+
     if st.button("Завершить работу"):
         st.balloons()
 if __name__=='__main__':
