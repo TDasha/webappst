@@ -168,8 +168,9 @@ def main():
             all_data = data.columns.tolist()
             sltd_columns = st.multiselect("Select",all_data)
             new_data = data[sltd_columns]
-            st.dataframe(new_data)
             data = new_data
+            st.dataframe(new_data)
+            
         st.header("Визуализация данных")
         if st.checkbox("Построить корреляционную матрицу"):
             plt.figure(figsize=(10,10))
