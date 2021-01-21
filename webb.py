@@ -141,7 +141,7 @@ def main():
 
     file = get_file()
     if file:
-        data = pd.read_csv(file)
+        data = pd.read_csv(file, sep=';')
 
         if st.checkbox("Показать данные"):
             num = st.slider("Колличество строк для отображеия ",5,data.shape[0])
