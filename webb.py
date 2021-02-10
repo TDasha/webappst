@@ -141,7 +141,7 @@ def main():
 
     file = get_file()
     if file:
-        data = pd.read_csv(file, sep=';')
+        data = pd.read_csv(file, sep=',')
 
         if st.checkbox("Показать данные"):
             num = st.slider("Колличество строк для отображеия ",5,data.shape[0])
@@ -168,7 +168,7 @@ def main():
             all_data = data.columns.tolist()
             sltd_columns = st.multiselect("Select",all_data)
             new_data = data[sltd_columns]
-            data = new_data
+            #data = new_data
             st.dataframe(new_data)
             
         st.header("Визуализация данных")
